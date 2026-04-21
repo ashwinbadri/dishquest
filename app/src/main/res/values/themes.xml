@@ -2,4 +2,8 @@
 <resources>
 
     <style name="Theme.DishQuest" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.DishQuest.Launch" parent="Theme.DishQuest">
+        <item name="android:windowBackground">@drawable/splash_launch_window</item>
+    </style>
 </resources>
