@@ -18,13 +18,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.verticalScroll
-import android.content.Intent
+import android.content.Intentt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Button
@@ -157,7 +157,7 @@ private fun AppHeader(
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(FoodOrange, DeepOrange)))
     ) {
-        Column {
+        Column(modifier = Modifier.statusBarsPadding()) {
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -177,12 +177,27 @@ private fun AppHeader(
                             color = Color.White.copy(alpha = 0.85f)
                         )
                     }
-                    IconButton(onClick = onViewSaved) {
+                    OutlinedButton(
+                        onClick = onViewSaved,
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.8f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White.copy(alpha = 0.15f)
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
                         Icon(
-                            Icons.Default.Star,
-                            contentDescription = "Saved dishes",
+                            Icons.Default.Favorite,
+                            contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "Saved",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
@@ -420,6 +435,7 @@ private fun FeaturedDishCard(
     onToggleSave: () -> Unit
 ) {
     ElevatedCard(
+        onClick = onViewDishDetail,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),

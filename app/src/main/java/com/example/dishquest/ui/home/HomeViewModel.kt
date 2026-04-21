@@ -11,6 +11,7 @@ import com.example.dishquest.data.repository.MealDbRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -25,14 +26,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         loadDish()
+        viewModelScope.launch {
+            savedDishRepository.savedDishes.collect { saved ->
+                val currentId = _uiState.value.featuredDish?.id ?: return@collect
+                _uiState.update { it.copy(isSaved = saved.any { d -> d.id == currentId }) }
+            }
+        }
     }
 
     fun tryAnotherDish() { loadDish() }
 
     fun toggleSave() {
         val dish = _uiState.value.featuredDish ?: return
-        val nowSaved = savedDishRepository.toggle(dish)
-        _uiState.update { it.copy(isSaved = nowSaved) }
+        savedDishRepository.toggle(dish)
     }
 
     private fun loadDish() {
