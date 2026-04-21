@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">DishQuest</string>
+    <!-- Replace with your Google Places API key from Google Cloud Console (enable Places API) -->
+    <string name="places_api_key">AIzaSyB2LBi8-n2j6TyX06IXnX04qv-Ws28BODg</string>
+</resources>

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://www.themealdb.com/api/json/v1/1/search.php?s=chicken\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(m['strMeal']\\) for m in d['meals']]\")",
+      "Bash(curl -s \"https://www.themealdb.com/api/json/v1/1/search.php?s=pizza\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(m['strMeal']\\) for m in \\(d['meals'] or []\\)]\")",
+      "Bash(export JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\")",
+      "Bash(./gradlew assembleDebug)"
+    ]
+  }
+}

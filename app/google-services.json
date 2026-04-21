@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "133071042864",
+    "project_id": "dishquest-6c546",
+    "storage_bucket": "dishquest-6c546.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:133071042864:android:c74af42f9b740a558df0f5",
+        "android_client_info": {
+          "package_name": "com.example.dishquest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsQVwy5uve2J6RO537kN9PRADDAmOUHA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
