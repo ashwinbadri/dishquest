@@ -16,9 +16,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dishquest.ui.detail.DishDetailRoute
 import com.example.dishquest.ui.home.HomeRoute
+import com.example.dishquest.ui.home.HomeViewModel
 import com.example.dishquest.ui.nearby.NearbyRestaurantsRoute
+import com.example.dishquest.ui.saved.SavedDishesRoute
 import com.example.dishquest.ui.splash.AnimatedSplashScreen
 import com.example.dishquest.ui.theme.DishQuestTheme
 
@@ -68,6 +71,7 @@ private fun MainActivityContent(
     handleDeepLink: (Intent?, NavHostController) -> Unit
 ) {
     val controller = rememberNavController()
+    val homeViewModel: HomeViewModel = viewModel()
     var showSplash by rememberSaveable { mutableStateOf(true) }
     var deepLinkHandled by remember { mutableStateOf(false) }
 
@@ -90,6 +94,21 @@ private fun MainActivityContent(
         NavHost(navController = controller, startDestination = "home") {
             composable("home") {
                 HomeRoute(
+                    onFindNearbyRestaurants = { dishName ->
+                        controller.navigate("nearby/${Uri.encode(dishName)}")
+                    },
+                    onViewDishDetail = { dishId ->
+                        controller.navigate("dish/${Uri.encode(dishId)}")
+                    },
+                    onViewSaved = {
+                        controller.navigate("saved")
+                    },
+                    viewModel = homeViewModel
+                )
+            }
+            composable("saved") {
+                SavedDishesRoute(
+                    onBack = { controller.popBackStack() },
                     onFindNearbyRestaurants = { dishName ->
                         controller.navigate("nearby/${Uri.encode(dishName)}")
                     },

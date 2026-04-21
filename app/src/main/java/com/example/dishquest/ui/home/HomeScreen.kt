@@ -21,7 +21,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import android.content.Intent
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Button
@@ -86,6 +89,7 @@ private val QuickCuisines = listOf(
 fun HomeRoute(
     onFindNearbyRestaurants: (dishName: String) -> Unit = {},
     onViewDishDetail: (dishId: String) -> Unit = {},
+    onViewSaved: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,7 +98,9 @@ fun HomeRoute(
         uiState = uiState,
         onTryAnotherDish = viewModel::tryAnotherDish,
         onFindNearbyRestaurants = onFindNearbyRestaurants,
-        onViewDishDetail = onViewDishDetail
+        onViewDishDetail = onViewDishDetail,
+        onToggleSave = viewModel::toggleSave,
+        onViewSaved = onViewSaved
     )
 }
 
@@ -103,7 +109,9 @@ fun HomeScreen(
     uiState: HomeUiState,
     onTryAnotherDish: () -> Unit,
     onFindNearbyRestaurants: (String) -> Unit,
-    onViewDishDetail: (String) -> Unit = {}
+    onViewDishDetail: (String) -> Unit = {},
+    onToggleSave: () -> Unit = {},
+    onViewSaved: () -> Unit = {}
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
@@ -116,16 +124,19 @@ fun HomeScreen(
                     val q = searchQuery.trim()
                     if (q.isNotEmpty()) onFindNearbyRestaurants(q)
                 },
-                onCuisineClick = { cuisine -> onFindNearbyRestaurants(cuisine) }
+                onCuisineClick = { cuisine -> onFindNearbyRestaurants(cuisine) },
+                onViewSaved = onViewSaved
             )
             when {
                 uiState.isLoading -> LoadingContent()
                 uiState.errorMessage != null -> ErrorContent(uiState.errorMessage)
                 uiState.featuredDish != null -> DishContent(
                     dish = uiState.featuredDish,
+                    isSaved = uiState.isSaved,
                     onFindNearbyRestaurants = { onFindNearbyRestaurants(uiState.featuredDish.name) },
                     onTryAnotherDish = onTryAnotherDish,
-                    onViewDishDetail = { onViewDishDetail(uiState.featuredDish.id) }
+                    onViewDishDetail = { onViewDishDetail(uiState.featuredDish.id) },
+                    onToggleSave = onToggleSave
                 )
                 else -> EmptyContent()
             }
@@ -138,7 +149,8 @@ private fun AppHeader(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
-    onCuisineClick: (String) -> Unit
+    onCuisineClick: (String) -> Unit,
+    onViewSaved: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -147,17 +159,33 @@ private fun AppHeader(
     ) {
         Column {
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
-                Text(
-                    text = "🍽️ DishQuest",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
-                )
-                Text(
-                    text = "Discover a dish. Find it nearby.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "🍽️ DishQuest",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Discover a dish. Find it nearby.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                    }
+                    IconButton(onClick = onViewSaved) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = "Saved dishes",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(14.dp))
                 OutlinedTextField(
                     value = searchQuery,
@@ -323,9 +351,11 @@ private fun ErrorContent(message: String) {
 @Composable
 private fun DishContent(
     dish: DishUiModel,
+    isSaved: Boolean,
     onFindNearbyRestaurants: () -> Unit,
     onTryAnotherDish: () -> Unit,
-    onViewDishDetail: () -> Unit
+    onViewDishDetail: () -> Unit,
+    onToggleSave: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -337,9 +367,11 @@ private fun DishContent(
         SectionLabel("Today's Featured Dish")
         FeaturedDishCard(
             dish = dish,
+            isSaved = isSaved,
             onFindNearbyRestaurants = onFindNearbyRestaurants,
             onTryAnotherDish = onTryAnotherDish,
-            onViewDishDetail = onViewDishDetail
+            onViewDishDetail = onViewDishDetail,
+            onToggleSave = onToggleSave
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
@@ -381,9 +413,11 @@ private fun EmojiPlaceholder(cuisine: String) {
 @Composable
 private fun FeaturedDishCard(
     dish: DishUiModel,
+    isSaved: Boolean,
     onFindNearbyRestaurants: () -> Unit,
     onTryAnotherDish: () -> Unit,
-    onViewDishDetail: () -> Unit
+    onViewDishDetail: () -> Unit,
+    onToggleSave: () -> Unit
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -439,8 +473,17 @@ private fun FeaturedDishCard(
                         borderColor = FoodOrange.copy(alpha = 0.35f)
                     )
                 )
-                IconButton(onClick = { shareDish(context, dish) }) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", tint = FoodOrange)
+                Row {
+                    IconButton(onClick = onToggleSave) {
+                        Icon(
+                            if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isSaved) "Unsave" else "Save",
+                            tint = if (isSaved) Color(0xFFE53935) else FoodOrange
+                        )
+                    }
+                    IconButton(onClick = { shareDish(context, dish) }) {
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = FoodOrange)
+                    }
                 }
             }
 
