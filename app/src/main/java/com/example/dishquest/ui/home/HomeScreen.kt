@@ -19,8 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -415,6 +418,7 @@ private fun FeaturedDishCard(
             }
         }
 
+        val context = LocalContext.current
         Column(modifier = Modifier.padding(24.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -435,6 +439,9 @@ private fun FeaturedDishCard(
                         borderColor = FoodOrange.copy(alpha = 0.35f)
                     )
                 )
+                IconButton(onClick = { shareDish(context, dish) }) {
+                    Icon(Icons.Default.Share, contentDescription = "Share", tint = FoodOrange)
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -536,6 +543,25 @@ private fun FeaturedDishCard(
             }
         }
     }
+}
+
+private fun shareDish(context: android.content.Context, dish: com.example.dishquest.ui.home.DishUiModel) {
+    val deepLink = "dishquest://dish?name=${android.net.Uri.encode(dish.name)}"
+    val text = buildString {
+        append("🍽️ ${dish.name}\n")
+        append("${dish.cuisine} cuisine\n\n")
+        append(dish.description)
+        if (dish.allIngredients.isNotEmpty()) {
+            append("\n\n🧂 Ingredients: ${dish.allIngredients.joinToString(", ")}")
+        }
+        append("\n\n🔗 Open in DishQuest: $deepLink")
+        append("\n📲 Get the app: https://play.google.com/store/apps/details?id=com.example.dishquest")
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share ${dish.name}"))
 }
 
 private fun cuisineEmoji(cuisine: String): String = when {

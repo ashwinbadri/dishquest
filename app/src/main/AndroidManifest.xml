@@ -22,12 +22,20 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:label="@string/app_name"
             android:theme="@style/Theme.DishQuest">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Deep link: dishquest://dish?name=Butter+Chicken -->
+            <!-- Deep link: dishquest://restaurant?name=Dishoom&lat=51.5&lng=-0.1&dish=Butter+Chicken -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dishquest" />
             </intent-filter>
         </activity>
     </application>

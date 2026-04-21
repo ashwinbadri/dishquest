@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -510,37 +511,73 @@ private fun RestaurantCard(
             }
         }
 
-        // Directions button — only visible when card is selected
-        if (isSelected && restaurant.latitude != null && restaurant.longitude != null) {
+        // Action buttons — only visible when card is selected
+        if (isSelected) {
             HorizontalDivider(color = FoodOrange.copy(alpha = 0.2f))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        openDirections(
-                            context = context,
-                            lat = restaurant.latitude,
-                            lng = restaurant.longitude,
-                            label = restaurant.name
+            Row(modifier = Modifier.fillMaxWidth()) {
+                // Directions
+                if (restaurant.latitude != null && restaurant.longitude != null) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                openDirections(
+                                    context = context,
+                                    lat = restaurant.latitude,
+                                    lng = restaurant.longitude,
+                                    label = restaurant.name
+                                )
+                            }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Get directions",
+                            tint = FoodOrange,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Get Directions",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = FoodOrange,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Get directions",
-                    tint = FoodOrange,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Get Directions",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = FoodOrange,
-                    fontWeight = FontWeight.SemiBold
-                )
+                    // Divider between buttons
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(FoodOrange.copy(alpha = 0.2f))
+                            .align(Alignment.CenterVertically)
+                    )
+                }
+                // Share
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { shareRestaurant(context, restaurant) }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share restaurant",
+                        tint = FoodOrange,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Share",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = FoodOrange,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
         } // end Column
@@ -568,6 +605,31 @@ private fun DishConfirmationBadge(mentionCount: Int) {
 }
 
 private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+private fun shareRestaurant(context: android.content.Context, restaurant: RestaurantUiModel) {
+    val deepLink = buildString {
+        append("dishquest://restaurant?")
+        append("name=${Uri.encode(restaurant.name)}")
+        append("&dish=${Uri.encode(restaurant.name)}")
+        if (restaurant.latitude != null) append("&lat=${restaurant.latitude}")
+        if (restaurant.longitude != null) append("&lng=${restaurant.longitude}")
+    }
+    val text = buildString {
+        append("📍 ${restaurant.name}\n")
+        append("${restaurant.address}\n")
+        if (restaurant.rating != "No rating") append("⭐ ${restaurant.rating}")
+        if (restaurant.reviewCount.isNotEmpty()) append(" (${restaurant.reviewCount})")
+        if (restaurant.rating != "No rating") append("\n")
+        restaurant.isOpen?.let { append(if (it) "🟢 Open now\n" else "🔴 Currently closed\n") }
+        append("\n🔗 Open in DishQuest: $deepLink")
+        append("\n📲 Get the app: https://play.google.com/store/apps/details?id=com.example.dishquest")
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share ${restaurant.name}"))
+}
 
 private fun openDirections(context: android.content.Context, lat: Double, lng: Double, label: String) {
     val gmmUri = Uri.parse("google.navigation:q=$lat,$lng")
