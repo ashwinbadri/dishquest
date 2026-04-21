@@ -39,4 +39,9 @@ searchQuery = "margherita pizza italian restaurant",
         delay(500)
         return dishes.random()
     }
+
+    override suspend fun getDishById(id: String): Dish {
+        delay(300)
+        return dishes.find { it.id == id } ?: throw Exception("Dish not found")
+    }
 }

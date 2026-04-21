@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.dishquest.ui.detail.DishDetailRoute
 import com.example.dishquest.ui.home.HomeRoute
 import com.example.dishquest.ui.nearby.NearbyRestaurantsRoute
 import com.example.dishquest.ui.theme.DishQuestTheme
@@ -22,6 +23,19 @@ class MainActivity : ComponentActivity() {
                 NavHost(navController = navController, startDestination = "home") {
                     composable("home") {
                         HomeRoute(
+                            onFindNearbyRestaurants = { dishName ->
+                                navController.navigate("nearby/${Uri.encode(dishName)}")
+                            },
+                            onViewDishDetail = { dishId ->
+                                navController.navigate("dish/${Uri.encode(dishId)}")
+                            }
+                        )
+                    }
+                    composable("dish/{dishId}") { backStackEntry ->
+                        val dishId = Uri.decode(backStackEntry.arguments?.getString("dishId") ?: "")
+                        DishDetailRoute(
+                            dishId = dishId,
+                            onBack = { navController.popBackStack() },
                             onFindNearbyRestaurants = { dishName ->
                                 navController.navigate("nearby/${Uri.encode(dishName)}")
                             }

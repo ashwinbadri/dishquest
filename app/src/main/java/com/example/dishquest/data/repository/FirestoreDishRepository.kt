@@ -23,16 +23,24 @@ class FirestoreDishRepository : DishRepository {
                     continuation.resume(dishes.random())
                 }
             }
-            .addOnFailureListener { exception ->
-                continuation.resumeWithException(exception)
+            .addOnFailureListener { continuation.resumeWithException(it) }
+    }
+
+    override suspend fun getDishById(id: String): Dish = suspendCoroutine { continuation ->
+        collection.document(id).get()
+            .addOnSuccessListener { doc ->
+                val dish = doc.toDish()
+                if (dish != null) continuation.resume(dish)
+                else continuation.resumeWithException(Exception("Dish not found"))
             }
+            .addOnFailureListener { continuation.resumeWithException(it) }
     }
 }
 
 private fun DocumentSnapshot.toDish(): Dish? {
     return try {
         Dish(
-            id = getString("id") ?: this.id,
+            id = this.id,
             name = getString("name") ?: return null,
             description = getString("description") ?: "",
             cuisine = getString("cuisine") ?: "",

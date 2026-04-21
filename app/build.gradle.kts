@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.coroutines.play.services)
     implementation(libs.maps.compose)
+    implementation("io.coil-kt:coil-compose:2.6.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

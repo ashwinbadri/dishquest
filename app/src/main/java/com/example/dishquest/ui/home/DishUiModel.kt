@@ -5,5 +5,8 @@ data class DishUiModel(
     val name: String,
     val description: String,
     val cuisine: String,
-    val ingredientsPreview: String
+    val ingredientsPreview: String,
+    val allIngredients: List<String> = emptyList(),
+    val tags: List<String> = emptyList(),
+    val imageUrl: String? = null
 )

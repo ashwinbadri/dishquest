@@ -2,6 +2,7 @@ package com.example.dishquest.ui.home
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -24,6 +26,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -57,10 +63,26 @@ private val FoodOrange = Color(0xFFFF6B35)
 private val DeepOrange = Color(0xFFD84910)
 private val WarmCream = Color(0xFFFFF8F0)
 private val OrangeLight = Color(0xFFFFEDE3)
+private val CardWhite = Color(0xFFFFFFFF)
+private val TextDark = Color(0xFF1A1A1A)
+private val TextMid = Color(0xFF555555)
+private val TextLight = Color(0xFF888888)
+
+private val QuickCuisines = listOf(
+    "🍕" to "Italian",
+    "🍣" to "Japanese",
+    "🌮" to "Mexican",
+    "🍛" to "Indian",
+    "🍜" to "Thai",
+    "🍔" to "American",
+    "🥙" to "Mediterranean",
+    "🥢" to "Chinese"
+)
 
 @Composable
 fun HomeRoute(
     onFindNearbyRestaurants: (dishName: String) -> Unit = {},
+    onViewDishDetail: (dishId: String) -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -68,7 +90,8 @@ fun HomeRoute(
     HomeScreen(
         uiState = uiState,
         onTryAnotherDish = viewModel::tryAnotherDish,
-        onFindNearbyRestaurants = onFindNearbyRestaurants
+        onFindNearbyRestaurants = onFindNearbyRestaurants,
+        onViewDishDetail = onViewDishDetail
     )
 }
 
@@ -76,7 +99,8 @@ fun HomeRoute(
 fun HomeScreen(
     uiState: HomeUiState,
     onTryAnotherDish: () -> Unit,
-    onFindNearbyRestaurants: (String) -> Unit
+    onFindNearbyRestaurants: (String) -> Unit,
+    onViewDishDetail: (String) -> Unit = {}
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
@@ -88,7 +112,8 @@ fun HomeScreen(
                 onSearch = {
                     val q = searchQuery.trim()
                     if (q.isNotEmpty()) onFindNearbyRestaurants(q)
-                }
+                },
+                onCuisineClick = { cuisine -> onFindNearbyRestaurants(cuisine) }
             )
             when {
                 uiState.isLoading -> LoadingContent()
@@ -96,8 +121,10 @@ fun HomeScreen(
                 uiState.featuredDish != null -> DishContent(
                     dish = uiState.featuredDish,
                     onFindNearbyRestaurants = { onFindNearbyRestaurants(uiState.featuredDish.name) },
-                    onTryAnotherDish = onTryAnotherDish
+                    onTryAnotherDish = onTryAnotherDish,
+                    onViewDishDetail = { onViewDishDetail(uiState.featuredDish.id) }
                 )
+                else -> EmptyContent()
             }
         }
     }
@@ -107,72 +134,109 @@ fun HomeScreen(
 private fun AppHeader(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
+    onCuisineClick: (String) -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(FoodOrange, DeepOrange)))
-            .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
         Column {
-            Text(
-                text = "🍽️ DishQuest",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-            Text(
-                text = "Discover a dish. Find it nearby.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.85f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text(
-                        "Search any dish...",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 15.sp
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = onSearch) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Find restaurants",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                    cursorColor = Color.White,
-                    focusedContainerColor = Color.White.copy(alpha = 0.15f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.1f)
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+                Text(
+                    text = "🍽️ DishQuest",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
                 )
-            )
+                Text(
+                    text = "Discover a dish. Find it nearby.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            "Search any dish or cuisine...",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 15.sp
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = onSearch) {
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = "Find restaurants",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        cursorColor = Color.White,
+                        focusedContainerColor = Color.White.copy(alpha = 0.15f),
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.1f)
+                    )
+                )
+            }
+
+            // Quick cuisine filters
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                QuickCuisines.forEach { (emoji, cuisine) ->
+                    FilterChip(
+                        selected = false,
+                        onClick = { onCuisineClick(cuisine) },
+                        label = {
+                            Text(
+                                text = "$emoji $cuisine",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = Color.White.copy(alpha = 0.2f),
+                            labelColor = Color.White,
+                            selectedContainerColor = Color.White,
+                            selectedLabelColor = DeepOrange
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = false,
+                            borderColor = Color.White.copy(alpha = 0.5f),
+                            selectedBorderColor = Color.White
+                        )
+                    )
+                }
+            }
         }
     }
 }
@@ -181,12 +245,47 @@ private fun AppHeader(
 private fun LoadingContent() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = FoodOrange, strokeWidth = 3.dp)
+            Text(text = "👨‍🍳", fontSize = 56.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            CircularProgressIndicator(color = FoodOrange, strokeWidth = 3.dp, modifier = Modifier.size(32.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Finding your next meal...",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = FontWeight.Medium,
+                color = TextMid
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Curating something delicious",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextLight
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyContent() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Text(text = "🍽️", fontSize = 56.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "No dish featured yet",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Search for a dish or tap a cuisine above to get started",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = TextLight
             )
         }
     }
@@ -199,13 +298,20 @@ private fun ErrorContent(message: String) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(24.dp)
         ) {
-            Text(text = "😕", style = MaterialTheme.typography.displayMedium)
+            Text(text = "😕", fontSize = 56.sp)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
+                text = "Something went wrong",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
                 text = message,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = TextLight
             )
         }
     }
@@ -215,56 +321,98 @@ private fun ErrorContent(message: String) {
 private fun DishContent(
     dish: DishUiModel,
     onFindNearbyRestaurants: () -> Unit,
-    onTryAnotherDish: () -> Unit
+    onTryAnotherDish: () -> Unit,
+    onViewDishDetail: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 24.dp),
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         SectionLabel("Today's Featured Dish")
         FeaturedDishCard(
             dish = dish,
             onFindNearbyRestaurants = onFindNearbyRestaurants,
-            onTryAnotherDish = onTryAnotherDish
+            onTryAnotherDish = onTryAnotherDish,
+            onViewDishDetail = onViewDishDetail
         )
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
-        text = text.uppercase(),
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFFAA6644),
-        letterSpacing = 1.2.sp
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(16.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(FoodOrange)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text.uppercase(),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFAA6644),
+            letterSpacing = 1.2.sp
+        )
+    }
+}
+
+@Composable
+private fun EmojiPlaceholder(cuisine: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.radialGradient(listOf(OrangeLight, WarmCream), radius = 600f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = cuisineEmoji(cuisine), fontSize = 80.sp)
+    }
 }
 
 @Composable
 private fun FeaturedDishCard(
     dish: DishUiModel,
     onFindNearbyRestaurants: () -> Unit,
-    onTryAnotherDish: () -> Unit
+    onTryAnotherDish: () -> Unit,
+    onViewDishDetail: () -> Unit
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = CardWhite)
     ) {
+        // Hero banner
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(Brush.linearGradient(listOf(OrangeLight, WarmCream))),
+                .height(180.dp)
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = cuisineEmoji(dish.cuisine), fontSize = 72.sp)
+            if (dish.imageUrl != null) {
+                SubcomposeAsyncImage(
+                    model = dish.imageUrl,
+                    contentDescription = dish.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    loading = { EmojiPlaceholder(dish.cuisine) },
+                    error = { EmojiPlaceholder(dish.cuisine) }
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.3f))))
+                )
+            } else {
+                EmojiPlaceholder(dish.cuisine)
+            }
         }
 
         Column(modifier = Modifier.padding(24.dp)) {
@@ -276,7 +424,7 @@ private fun FeaturedDishCard(
                 SuggestionChip(
                     onClick = {},
                     label = {
-                        Text(dish.cuisine, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                        Text(dish.cuisine, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     },
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = OrangeLight,
@@ -289,43 +437,48 @@ private fun FeaturedDishCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = dish.name,
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A1A1A)
+                fontWeight = FontWeight.ExtraBold,
+                color = TextDark
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = dish.description,
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFF555555),
+                color = TextMid,
                 lineHeight = 26.sp,
                 maxLines = 5,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Ingredients section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(WarmCream)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
-                Text(
-                    text = "Ingredients",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = DeepOrange,
-                    letterSpacing = 0.8.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "🧂", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Key Ingredients",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = DeepOrange,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = dish.ingredientsPreview,
                     style = MaterialTheme.typography.bodyMedium,
@@ -334,17 +487,32 @@ private fun FeaturedDishCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            androidx.compose.material3.TextButton(
+                onClick = onViewDishDetail,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(
+                    text = "View full details →",
+                    color = FoodOrange,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = onFindNearbyRestaurants,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = FoodOrange)
+                colors = ButtonDefaults.buttonColors(containerColor = FoodOrange),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
             ) {
                 Text(
                     text = "📍  Find Nearby Restaurants",
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
