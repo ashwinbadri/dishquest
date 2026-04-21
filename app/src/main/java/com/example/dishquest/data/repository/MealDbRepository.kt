@@ -13,9 +13,13 @@ private const val SPOONACULAR_API_KEY = "209345c887msh2242aad7ffa57adp1178e1jsnf
 private const val RAPIDAPI_HOST = "spoonacular-recipe-food-nutrition-v1.p.rapidapi.com"
 private const val BASE_URL = "https://$RAPIDAPI_HOST"
 
-class MealDbRepository {
+class MealDbRepository : MealRecipeRepository {
 
-    suspend fun fetchRecipeData(dishName: String): MealRecipeData =
+    companion object {
+        val instance: MealDbRepository by lazy { MealDbRepository() }
+    }
+
+    override suspend fun fetchRecipeData(dishName: String): MealRecipeData =
         withContext(Dispatchers.IO) {
             if (SPOONACULAR_API_KEY.isBlank()) return@withContext MealRecipeData(null, emptyList())
             try {
