@@ -1,4 +1,4 @@
-package com.example.dishquest
+package io.dishquest.app
 
 import org.junit.Test
 

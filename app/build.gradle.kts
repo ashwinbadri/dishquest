@@ -1,11 +1,16 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
 }
 
+val localProperties = Properties()
+localProperties.load(rootProject.file("local.properties").inputStream())
+
 android {
-    namespace = "com.example.dishquest"
+    namespace = "io.dishquest.app"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -13,18 +18,22 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.dishquest"
+        applicationId = "io.dishquest.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "SPOONACULAR_API_KEY", "\"${localProperties.getProperty("SPOONACULAR_API_KEY")}\"")
+        manifestPlaceholders["PLACES_API_KEY"] = localProperties.getProperty("PLACES_API_KEY") ?: ""
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -37,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

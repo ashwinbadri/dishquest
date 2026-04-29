@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:133071042864:android:c74af42f9b740a558df0f5",
         "android_client_info": {
-          "package_name": "com.example.dishquest"
+          "package_name": "io.dishquest.app"
         }
       },
       "oauth_client": [],
