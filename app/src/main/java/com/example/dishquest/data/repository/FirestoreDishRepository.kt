@@ -13,17 +13,20 @@ class FirestoreDishRepository : DishRepository {
     // Verify this matches your Firestore collection name
     private val collection = Firebase.firestore.collection("dishes")
 
-    override suspend fun getRandomDish(): Dish = suspendCoroutine { continuation ->
-        collection.get()
-            .addOnSuccessListener { snapshot ->
-                val dishes = snapshot.documents.mapNotNull { it.toDish() }
-                if (dishes.isEmpty()) {
-                    continuation.resumeWithException(Exception("No dishes found in Firestore"))
-                } else {
-                    continuation.resume(dishes.random())
-                }
+    override suspend fun getRandomDish(): Dish {
+        val tried = mutableSetOf<Int>()
+        while (tried.size < 323) {
+            val id = (1..323).random()
+            if (!tried.add(id)) continue
+            val doc = suspendCoroutine { continuation ->
+                collection.document(id.toString()).get()
+                    .addOnSuccessListener { continuation.resume(it) }
+                    .addOnFailureListener { continuation.resumeWithException(it) }
             }
-            .addOnFailureListener { continuation.resumeWithException(it) }
+            val dish = doc.toDish()
+            if (dish != null) return dish
+        }
+        throw Exception("No dishes found in Firestore")
     }
 
     override suspend fun getDishById(id: String): Dish = suspendCoroutine { continuation ->

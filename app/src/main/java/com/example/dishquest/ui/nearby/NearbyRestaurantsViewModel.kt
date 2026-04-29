@@ -11,6 +11,8 @@ import com.example.dishquest.data.model.Restaurant
 import com.example.dishquest.data.repository.PlacesRestaurantRepository
 import com.example.dishquest.data.repository.RestaurantRepository
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.libraries.places.api.Places
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +61,10 @@ class NearbyRestaurantsViewModel(
             _uiState.update { it.copy(isLoadingLocation = true, errorMessage = null) }
             try {
                 val location = fusedLocationClient.lastLocation.await()
+                    ?: fusedLocationClient.getCurrentLocation(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        CancellationTokenSource().token
+                    ).await()
                 if (location == null) {
                     _uiState.update {
                         it.copy(isLoadingLocation = false, errorMessage = "Could not get your location. Make sure GPS is enabled.")
