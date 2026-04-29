@@ -7,5 +7,11 @@ data class Dish(
     val cuisine: String = "",
 val searchQuery: String = "",
     val tags: List<String> = emptyList(),
-    val ingredients: List<String> = emptyList()
+    val ingredients: List<String> = emptyList(),
+    val variants: List<String> = emptyList(),
+    val origin: String = "",
+    val history: String = "",
+    val howToEat: String = "",
+    val shortDescription: String = "",
+    val availabilityTier: String = ""
 )

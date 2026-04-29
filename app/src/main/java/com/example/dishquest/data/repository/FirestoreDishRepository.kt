@@ -46,7 +46,13 @@ private fun DocumentSnapshot.toDish(): Dish? {
             cuisine = getString("cuisine") ?: "",
             searchQuery = getString("searchQuery") ?: "",
             tags = get("tags") as? List<String> ?: emptyList(),
-            ingredients = get("ingredients") as? List<String> ?: emptyList()
+            ingredients = get("ingredients") as? List<String> ?: emptyList(),
+            variants = get("variants") as? List<String> ?: emptyList(),
+            origin = getString("origin") ?: "",
+            history = getString("history") ?: "",
+            howToEat = getString("howToEat") ?: "",
+            shortDescription = getString("shortDescription") ?: "",
+            availabilityTier = getString("availabilityTier") ?: ""
         )
     } catch (e: Exception) {
         null

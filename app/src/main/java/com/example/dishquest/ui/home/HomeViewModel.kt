@@ -74,5 +74,11 @@ private fun Dish.toUiModel() = DishUiModel(
     cuisine = cuisine,
     ingredientsPreview = ingredients.take(3).joinToString(", "),
     allIngredients = ingredients,
-    tags = tags
+    tags = tags,
+    variants = variants,
+    origin = origin,
+    history = history,
+    howToEat = howToEat,
+    shortDescription = shortDescription,
+    availabilityTier = availabilityTier
 )

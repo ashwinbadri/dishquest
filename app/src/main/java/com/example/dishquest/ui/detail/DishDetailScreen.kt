@@ -1,5 +1,8 @@
 package com.example.dishquest.ui.detail
 
+import android.content.Intent
+import android.app.Application
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -11,20 +14,19 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import android.content.Intent
 import androidx.compose.material.icons.Icons
-import android.app.Application
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,12 +35,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,8 +47,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,6 +67,7 @@ private val TextDark = Color(0xFF1A1A1A)
 private val TextMid = Color(0xFF555555)
 private val TextLight = Color(0xFF888888)
 private val IngredientBg = Color(0xFFF5F5F5)
+private val CardBg = Color(0xFFFFF0E6)
 
 @Composable
 fun DishDetailRoute(
@@ -98,32 +101,30 @@ fun DishDetailScreen(
     val context = LocalContext.current
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = uiState.dish?.name ?: "Dish Details", fontWeight = FontWeight.Bold, maxLines = 1) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+        containerColor = WarmCream,
+        bottomBar = {
+            if (uiState.dish != null) {
+                Surface(shadowElevation = 12.dp, color = WarmCream) {
+                    Button(
+                        onClick = { onFindNearbyRestaurants(uiState.dish.name) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = FoodOrange),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Text(
+                            text = "📍  Find Nearby Restaurants",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
                     }
-                },
-                actions = {
-                    if (uiState.dish != null) {
-                        IconButton(onClick = onToggleSave) {
-                            Icon(
-                                if (uiState.isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = if (uiState.isSaved) "Unsave" else "Save",
-                                tint = if (uiState.isSaved) Color(0xFFFFCDD2) else Color.White
-                            )
-                        }
-                        IconButton(onClick = { shareDish(context, uiState.dish) }) {
-                            Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = FoodOrange, titleContentColor = Color.White)
-            )
-        },
-        containerColor = WarmCream
+                }
+            }
+        }
     ) { innerPadding ->
         when {
             uiState.isLoading -> LoadingContent(modifier = Modifier.padding(innerPadding))
@@ -133,7 +134,10 @@ fun DishDetailScreen(
                 imageUrl = uiState.imageUrl,
                 detailedIngredients = uiState.detailedIngredients,
                 isLoadingIngredients = uiState.isLoadingIngredients,
-                onFindNearbyRestaurants = onFindNearbyRestaurants,
+                isSaved = uiState.isSaved,
+                onBack = onBack,
+                onToggleSave = onToggleSave,
+                onShare = { shareDish(context, uiState.dish) },
                 modifier = Modifier.padding(innerPadding)
             )
         }
@@ -168,17 +172,19 @@ private fun DishDetailContent(
     imageUrl: String?,
     detailedIngredients: List<MealIngredient>,
     isLoadingIngredients: Boolean,
-    onFindNearbyRestaurants: (String) -> Unit,
+    isSaved: Boolean,
+    onBack: () -> Unit,
+    onToggleSave: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
 
-        // Hero image from Spoonacular, emoji fallback while loading or on error
+        // Immersive hero with floating controls
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(16f / 9f),
-            contentAlignment = Alignment.Center
+                .aspectRatio(4f / 3f)
         ) {
             if (imageUrl != null) {
                 SubcomposeAsyncImage(
@@ -189,32 +195,96 @@ private fun DishDetailContent(
                     loading = { EmojiHero(dish.cuisine) },
                     error = { EmojiHero(dish.cuisine) }
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.4f))))
-                )
             } else {
                 EmojiHero(dish.cuisine)
             }
 
-            Box(modifier = Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.BottomStart) {
+            // Gradient scrim — dark at top and bottom for legibility
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = 0.30f),
+                            0.4f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.60f)
+                        )
+                    )
+            )
+
+            // Floating back / save / share
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.35f))
+                ) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    IconButton(
+                        onClick = onToggleSave,
+                        modifier = Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.35f))
+                    ) {
+                        Icon(
+                            if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isSaved) "Unsave" else "Save",
+                            tint = if (isSaved) Color(0xFFFF6B6B) else Color.White
+                        )
+                    }
+                    IconButton(
+                        onClick = onShare,
+                        modifier = Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.35f))
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                    }
+                }
+            }
+
+            // Cuisine chip + dish name pinned to bottom of hero
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            ) {
                 SuggestionChip(
                     onClick = {},
-                    label = { Text(dish.cuisine, fontWeight = FontWeight.SemiBold, fontSize = 14.sp) },
+                    label = { Text(dish.cuisine, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) },
                     colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = if (imageUrl != null) Color.White.copy(alpha = 0.9f) else OrangeLight,
+                        containerColor = Color.White.copy(alpha = 0.9f),
                         labelColor = DeepOrange
                     ),
-                    border = SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = FoodOrange.copy(alpha = 0.4f))
+                    border = SuggestionChipDefaults.suggestionChipBorder(
+                        enabled = true,
+                        borderColor = FoodOrange.copy(alpha = 0.4f)
+                    )
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = dish.name,
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
 
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
-
-            Text(text = dish.name, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, color = TextDark)
-            Spacer(modifier = Modifier.height(12.dp))
+        // Content card with rounded top corners
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(WarmCream)
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+        ) {
+            // Description
             Text(text = dish.description, style = MaterialTheme.typography.bodyLarge, color = TextMid, lineHeight = 28.sp)
 
             // Tags
@@ -222,16 +292,56 @@ private fun DishDetailContent(
                 Spacer(modifier = Modifier.height(20.dp))
                 SectionHeader(emoji = "🏷️", title = "Tags")
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     dish.tags.forEach { tag ->
                         Surface(shape = RoundedCornerShape(20.dp), color = OrangeLight) {
-                            Text(text = tag, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = DeepOrange)
+                            Text(
+                                text = tag,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                fontSize = 13.sp, fontWeight = FontWeight.Medium, color = DeepOrange
+                            )
                         }
                     }
                 }
             }
 
-            // Ingredients
+            // History card
+            if (dish.history.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(20.dp))
+                InfoCard(emoji = "📖", title = "History", body = dish.history)
+            }
+
+            // How to Eat card
+            if (dish.howToEat.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                InfoCard(emoji = "🍴", title = "How to Eat", body = dish.howToEat)
+            }
+
+            // Variants
+            if (dish.variants.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(20.dp))
+                SectionHeader(emoji = "🔀", title = "Variants")
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    dish.variants.forEach { variant ->
+                        Surface(shape = RoundedCornerShape(20.dp), color = IngredientBg) {
+                            Text(
+                                text = variant.replaceFirstChar { it.uppercase() },
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextMid
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Ingredients — flow chip grid
             Spacer(modifier = Modifier.height(24.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SectionHeader(emoji = "🧂", title = "Ingredients")
@@ -246,40 +356,106 @@ private fun DishDetailContent(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             when {
                 isLoadingIngredients -> {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), color = FoodOrange, strokeWidth = 2.dp)
                         Text(text = "Looking up ingredients...", style = MaterialTheme.typography.bodySmall, color = TextLight)
                     }
                 }
                 detailedIngredients.isNotEmpty() -> {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        detailedIngredients.forEach { IngredientRow(it.name) }
+                        detailedIngredients.forEach { IngredientChip(it.name) }
                     }
                 }
                 dish.allIngredients.isNotEmpty() -> {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        dish.allIngredients.forEach { IngredientRow(it) }
+                        dish.allIngredients.forEach { IngredientChip(it) }
                     }
                 }
                 else -> {
-                    Text(text = "No ingredient data available for this dish.", style = MaterialTheme.typography.bodyMedium, color = TextLight, modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        text = "No ingredient data available for this dish.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextLight,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                onClick = { onFindNearbyRestaurants(dish.name) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = FoodOrange),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-            ) {
-                Text(text = "📍  Find Nearby Restaurants", fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(vertical = 6.dp))
+            // Origin & Availability
+            if (dish.origin.isNotEmpty() || dish.availabilityTier.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (dish.origin.isNotEmpty()) {
+                        Surface(shape = RoundedCornerShape(20.dp), color = OrangeLight) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text("📍", fontSize = 13.sp)
+                                Text(dish.origin, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = DeepOrange)
+                            }
+                        }
+                    }
+                    if (dish.availabilityTier.isNotEmpty()) {
+                        Surface(shape = RoundedCornerShape(20.dp), color = IngredientBg) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(availabilityEmoji(dish.availabilityTier), fontSize = 13.sp)
+                                Text(
+                                    dish.availabilityTier.replace("_", " ").replaceFirstChar { it.uppercase() },
+                                    fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextMid
+                                )
+                            }
+                        }
+                    }
+                }
             }
+
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun InfoCard(emoji: String, title: String, body: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = CardBg
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            SectionHeader(emoji = emoji, title = title)
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(text = body, style = MaterialTheme.typography.bodyLarge, color = TextMid, lineHeight = 28.sp)
+        }
+    }
+}
+
+@Composable
+private fun IngredientChip(ingredient: String) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = IngredientBg,
+        border = BorderStroke(1.dp, Color(0xFFE8E8E8))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(FoodOrange))
+            Text(text = ingredient, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextDark)
         }
     }
 }
@@ -287,7 +463,9 @@ private fun DishDetailContent(
 @Composable
 private fun EmojiHero(cuisine: String) {
     Box(
-        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(FoodOrange.copy(alpha = 0.15f), WarmCream))),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(FoodOrange.copy(alpha = 0.2f), DeepOrange.copy(alpha = 0.05f)))),
         contentAlignment = Alignment.Center
     ) {
         Text(text = cuisineEmoji(cuisine), fontSize = 96.sp)
@@ -300,18 +478,6 @@ private fun SectionHeader(emoji: String, title: String) {
         Text(text = emoji, fontSize = 18.sp)
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDark)
-    }
-}
-
-@Composable
-private fun IngredientRow(ingredient: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(IngredientBg).padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(FoodOrange))
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(text = ingredient, style = MaterialTheme.typography.bodyMedium, color = TextDark, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -332,6 +498,13 @@ private fun shareDish(context: android.content.Context, dish: DishUiModel) {
         putExtra(Intent.EXTRA_TEXT, text)
     }
     context.startActivity(Intent.createChooser(intent, "Share ${dish.name}"))
+}
+
+private fun availabilityEmoji(tier: String): String = when {
+    tier.contains("less_common", ignoreCase = true) -> "🔸"
+    tier.contains("common", ignoreCase = true) -> "⭐"
+    tier.contains("rare", ignoreCase = true) -> "💎"
+    else -> "🍽️"
 }
 
 private fun cuisineEmoji(cuisine: String): String = when {

@@ -46,6 +46,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -152,6 +154,7 @@ private fun AppHeader(
     onCuisineClick: (String) -> Unit,
     onViewSaved: () -> Unit = {}
 ) {
+    var searchFocused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -205,7 +208,7 @@ private fun AppHeader(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { searchFocused = it.isFocused },
                     placeholder = {
                         Text(
                             "Search any dish or cuisine...",
@@ -249,8 +252,8 @@ private fun AppHeader(
                 )
             }
 
-            // Quick cuisine filters
-            Row(
+            // Quick cuisine filters — shown only when search bar is focused
+            if (searchFocused) Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
@@ -515,42 +518,64 @@ private fun FeaturedDishCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = dish.description,
+                text = dish.shortDescription.ifEmpty { dish.description },
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextMid,
                 lineHeight = 26.sp,
-                maxLines = 5,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Ingredients section
+            // Compact info summary
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(WarmCream)
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "🧂", fontSize = 16.sp)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Key Ingredients",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = DeepOrange,
-                        letterSpacing = 0.5.sp
-                    )
+                if (dish.ingredientsPreview.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "🧂", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = dish.ingredientsPreview,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF444444),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = dish.ingredientsPreview,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF444444),
-                    lineHeight = 22.sp
-                )
+                if (dish.variants.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "🔀", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = dish.variants.joinToString(" • ") { it.replaceFirstChar { c -> c.uppercase() } },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF444444),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (dish.availabilityTier.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = homeAvailabilityEmoji(dish.availabilityTier), fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = dish.availabilityTier.replace("_", " ").replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF444444),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -621,6 +646,13 @@ private fun shareDish(context: android.content.Context, dish: com.example.dishqu
         putExtra(Intent.EXTRA_TEXT, text)
     }
     context.startActivity(Intent.createChooser(intent, "Share ${dish.name}"))
+}
+
+private fun homeAvailabilityEmoji(tier: String): String = when {
+    tier.contains("less_common", ignoreCase = true) -> "🔸"
+    tier.contains("common", ignoreCase = true) -> "⭐"
+    tier.contains("rare", ignoreCase = true) -> "💎"
+    else -> "🍽️"
 }
 
 private fun cuisineEmoji(cuisine: String): String = when {
